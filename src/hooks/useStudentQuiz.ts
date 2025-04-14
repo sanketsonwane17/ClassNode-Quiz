@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuiz } from "@/contexts/quiz"; // Fixed import path
+import { useQuiz } from "@/contexts/quiz"; 
 import { StudentAnswer, QuizResult } from "@/types/quiz";
 
 export const useStudentQuiz = () => {
