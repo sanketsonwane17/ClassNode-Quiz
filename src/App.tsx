@@ -31,6 +31,7 @@ const App = () => {
                   <Route path="/teacher" element={<TeacherDashboard />} />
                   <Route path="/join/:roomCode?" element={<StudentJoin />} />
                   <Route path="/student" element={<StudentDashboard />} />
+                  <Route path="/room/:roomCode" element={<StudentJoin />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </QuizProvider>
