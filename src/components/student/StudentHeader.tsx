@@ -14,8 +14,8 @@ const StudentHeader: React.FC = () => {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold">
-            <span className="text-quiz-primary">Quiz</span>
-            <span className="text-quiz-secondary">Flow</span>
+            <span className="text-quiz-primary">Class</span>
+            <span className="text-quiz-secondary">Node</span>
           </h1>
           <span className="text-sm bg-gray-100 px-2 py-1 rounded-md">Student</span>
         </div>
