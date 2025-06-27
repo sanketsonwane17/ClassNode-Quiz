@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { QuizContextType, Quiz, QuizResult, StudentAnswer } from "@/types/quiz";
 import { QuizContext } from "./quizContext";
 import { useAuth } from "@/contexts/AuthContext";
