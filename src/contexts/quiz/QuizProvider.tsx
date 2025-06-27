@@ -59,7 +59,7 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: quizData.id,
           title: quizData.title,
           description: quizData.description || "",
-          timePerQuestion: quizData.time_per_question,
+          timePerQuestion: Number(quizData.time_per_question),
           isActive: quizData.is_active,
           roomCode: quizData.room_code,
           createdAt: quizData.created_at,
