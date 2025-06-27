@@ -30,6 +30,91 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
+  
+  // For students, check if there's an active quiz for their room code
+  useEffect(() => {
+    if (user && user.role === 'student' && roomCode) {
+      checkActiveQuizForStudent();
+    }
+  }, [user, roomCode]);
+
+  const checkActiveQuizForStudent = async () => {
+    if (!roomCode) return;
+    
+    try {
+      const { data: quizData, error } = await supabase
+        .from("quizzes")
+        .select(`
+          id, title, description, time_per_question, is_active, room_code, created_at, created_by,
+          quiz_questions (
+            id, text, options, correct_option, order_num
+          )
+        `)
+        .eq("room_code", roomCode)
+        .eq("is_active", true)
+        .single();
+
+      if (!error && quizData) {
+        const formattedQuiz: Quiz = {
+          id: quizData.id,
+          title: quizData.title,
+          description: quizData.description || "",
+          timePerQuestion: quizData.time_per_question,
+          isActive: quizData.is_active,
+          roomCode: quizData.room_code,
+          createdAt: quizData.created_at,
+          createdBy: quizData.created_by,
+          questions: quizData.quiz_questions
+            .sort((a, b) => a.order_num - b.order_num)
+            .map(q => ({
+              id: q.id,
+              text: q.text,
+              options: q.options as string[],
+              correctOption: q.correct_option
+            }))
+        };
+        
+        setActiveQuiz(formattedQuiz);
+        console.log("Found active quiz for student:", formattedQuiz);
+      } else {
+        setActiveQuiz(null);
+        console.log("No active quiz found for room code:", roomCode);
+      }
+    } catch (error) {
+      console.error("Error checking active quiz for student:", error);
+      setActiveQuiz(null);
+    }
+  };
+
+  // Set up real-time subscription for quiz status changes
+  useEffect(() => {
+    if (!roomCode) return;
+
+    const channel = supabase
+      .channel('quiz-status-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quizzes',
+          filter: `room_code=eq.${roomCode}`
+        },
+        (payload) => {
+          console.log('Quiz status changed:', payload);
+          if (user?.role === 'student') {
+            checkActiveQuizForStudent();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomCode, user]);
+
+
   // Poll for new student answers when there's an active quiz
   useEffect(() => {
     if (!activeQuiz) return;
