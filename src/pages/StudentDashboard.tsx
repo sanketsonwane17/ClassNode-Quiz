@@ -1,14 +1,18 @@
 
 import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import StudentHeader from "@/components/student/StudentHeader";
 import QuizWaiting from "@/components/student/QuizWaiting";
 import ActiveQuizQuestion from "@/components/student/ActiveQuizQuestion";
 import QuizCompleted from "@/components/student/QuizCompleted";
 import useStudentQuiz from "@/hooks/useStudentQuiz";
+import { useNavigate } from "react-router-dom";
 
 const StudentDashboard = () => {
   const { user } = useAuth();
+  const { user, roomCode } = useAuth();
+  const navigate = useNavigate();
   const {
     activeQuiz,
     currentQuestion,
@@ -20,10 +24,25 @@ const StudentDashboard = () => {
     handleAnswer,
     handleNextQuestion
   } = useStudentQuiz();
+  
+    // Redirect if not authenticated or not a student
+  useEffect(() => {
+    if (!user || user.role !== "student") {
+      navigate("/");
+      return;
+    }
+    
+    if (!roomCode) {
+      navigate("/join");
+      return;
+    }
+  }, [user, roomCode, navigate]);
 
   if (!user || user.role !== "student") {
     return null;
   }
+  console.log("Student Dashboard - Active Quiz:", activeQuiz);
+  console.log("Student Dashboard - Room Code:", roomCode);
 
   return (
     <div className="min-h-screen bg-background">
