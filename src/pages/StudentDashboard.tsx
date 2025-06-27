@@ -1,5 +1,4 @@
 
-import React from "react";
 import React, { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import StudentHeader from "@/components/student/StudentHeader";
@@ -10,7 +9,7 @@ import useStudentQuiz from "@/hooks/useStudentQuiz";
 import { useNavigate } from "react-router-dom";
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
+
   const { user, roomCode } = useAuth();
   const navigate = useNavigate();
   const {
