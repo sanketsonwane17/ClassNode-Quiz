@@ -71,7 +71,7 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, quizzes }) => {
       const percentage = Math.round((result.score / result.totalQuestions) * 100);
       const date = new Date().toLocaleDateString(); // Use current date as fallback since timestamp is missing
       
-      csvContent += `"${result.studentName}","${quizName}",${result.score}/${result.totalQuestions},${percentage}%,"${date}"\n`;
+      csvContent += `"${result.studentName}","${quizName}","${result.score}/${result.totalQuestions}",${percentage}%,"${date}"\n`;
     });
     
     // Create download link
