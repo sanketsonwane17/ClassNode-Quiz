@@ -10,16 +10,19 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const StudentJoin = () => {
-  const { login } = useAuth();
+
+  const { login, setRoomCode } = useAuth();
   const [name, setName] = useState("");
-  const [roomCode, setRoomCode] = useState("");
+
+  const [roomCode, setRoomCodeState] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const { roomCode: urlRoomCode } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (urlRoomCode) {
-      setRoomCode(urlRoomCode);
+
+      setRoomCodeState(urlRoomCode);
     }
   }, [urlRoomCode]);
 
@@ -42,7 +45,8 @@ const StudentJoin = () => {
       // Check if room code exists and is active
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-        .select("id, is_active, room_code")
+
+        .select("id, is_active, room_code, title")
         .eq("room_code", roomCode.toUpperCase())
         .single();
 
@@ -76,8 +80,18 @@ const StudentJoin = () => {
       localStorage.setItem("quizRoomCode", roomCode.toUpperCase());
       localStorage.setItem("studentId", studentData.id);
       
-      // Use the login function from context with student role
+     
+      // Set room code in auth context
+      setRoomCode(roomCode.toUpperCase());
+      
+      // Login the student
       login(name, "student");
+      console.log("Student joined successfully:", {
+        studentId: studentData.id,
+        roomCode: roomCode.toUpperCase(),
+        quizTitle: quizData.title
+      });
+ 
       
       // Navigate to student dashboard
       navigate("/student");
@@ -120,7 +134,7 @@ const StudentJoin = () => {
                   id="roomCode"
                   placeholder="Enter room code"
                   value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                  onChange={(e) => setRoomCodeState(e.target.value.toUpperCase())}
                   className="uppercase"
                   maxLength={6}
                 />
