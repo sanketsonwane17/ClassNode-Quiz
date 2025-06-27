@@ -91,7 +91,7 @@ const Login = () => {
                 <span className="text-quiz-secondary">Node</span>
               </CardTitle>
               <CardDescription className="text-center">
-                Teacher Portal - Sign in or create an account
+                Teacher Portal - Sign in or create an account Updated
               </CardDescription>
             </CardHeader>
             <CardContent>
