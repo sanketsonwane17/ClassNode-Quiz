@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import React, { useEffect, useMemo, useState } from "react";Add commentMore actions
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -96,7 +95,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({ quiz, studentAnswers, onEndQuiz
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-@@ -63,16 +73,16 @@
+
             Question {currentQuestion + 1} of {quiz.questions.length}
           </p>
         </div>
@@ -116,7 +115,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({ quiz, studentAnswers, onEndQuiz
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive">
-@@ -97,47 +107,41 @@
+
       </div>
 
       <div className="bg-white rounded-md border p-6">
@@ -175,7 +174,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({ quiz, studentAnswers, onEndQuiz
           <div className="flex flex-col sm:flex-row gap-4">
             <Card className="flex-1">
               <CardHeader className="pb-2">
-@@ -150,14 +154,15 @@
+
                 <div className="text-3xl font-bold">
                   {correctCount}
                   <span className="text-lg text-muted-foreground ml-1">
@@ -195,7 +194,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({ quiz, studentAnswers, onEndQuiz
             <Card className="flex-1">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center text-red-600">
-@@ -169,9 +174,10 @@
+
                 <div className="text-3xl font-bold">
                   {incorrectCount}
                   <span className="text-lg text-muted-foreground ml-1">
@@ -209,7 +208,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({ quiz, studentAnswers, onEndQuiz
                   </span>
                 </div>
               </CardContent>
-@@ -182,38 +188,33 @@
+
 
       <div className="mt-6">
         <h3 className="font-medium text-lg mb-2">
