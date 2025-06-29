@@ -44,14 +44,10 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
 }) => {
   const { currentQuestion } = useQuiz();
   const [uniqueStudents, setUniqueStudents] = useState<string[]>([]);
-  const [answersForCurrentQuestion, setAnswersForCurrentQuestion] = useState<
-    StudentAnswer[]
-  >([]);
+  const [answersForCurrentQuestion, setAnswersForCurrentQuestion] = useState<StudentAnswer[]>([]);
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
-  const [studentNames, setStudentNames] = useState<{ [key: string]: string }>(
-    {}
-  );
+  const [studentNames, setStudentNames] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const studentIds = new Set<string>();
@@ -73,7 +69,6 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
         (a) => a.questionId === currentQuestionId
       );
       setAnswersForCurrentQuestion(filteredAnswers);
-
       setCorrectCount(filteredAnswers.filter((a) => a.correct).length);
       setIncorrectCount(filteredAnswers.filter((a) => !a.correct).length);
     }
@@ -81,20 +76,21 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">{quiz.title}</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold">{quiz.title}</h2>
+          <p className="text-muted-foreground text-sm">
             Question {currentQuestion + 1} of {quiz.questions.length}
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Card className="flex items-center p-2 bg-blue-50">
             <Users className="h-5 w-5 text-blue-500 mr-2" />
             <div>
               <p className="text-sm font-medium">Students connected</p>
-              <p className="text-xl font-bold">{uniqueStudents.length}</p>
+              <p className="text-lg font-bold">{uniqueStudents.length}</p>
             </div>
           </Card>
 
@@ -109,79 +105,63 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>End this quiz?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will end the active quiz for all students. Results will
-                  still be available.
+                  This will end the active quiz for all students. Results will still be available.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onEndQuiz}>
-                  End Quiz
-                </AlertDialogAction>
+                <AlertDialogAction onClick={onEndQuiz}>End Quiz</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
         </div>
       </div>
 
-      <div className="bg-white rounded-md border p-6">
-        <h3 className="text-xl font-bold mb-4">
+      {/* Question + Options */}
+      <div className="bg-white rounded-md border p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold mb-4">
           {quiz.questions[currentQuestion].text}
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {quiz.questions[currentQuestion].options.map((option, index) => {
-            const isCorrect =
-              quiz.questions[currentQuestion].correctOption === index;
-
+            const isCorrect = quiz.questions[currentQuestion].correctOption === index;
             return (
               <div
                 key={index}
                 className={`p-4 rounded-md border-2 ${
-                  isCorrect
-                    ? "border-green-400 bg-green-50"
-                    : "border-gray-200"
+                  isCorrect ? "border-green-400 bg-green-50" : "border-gray-200"
                 }`}
               >
                 <div className="flex justify-between items-center">
-                  <span className={isCorrect ? "font-medium" : ""}>
-                    {option}
-                  </span>
-                  {isCorrect && (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  )}
+                  <span className={isCorrect ? "font-medium" : ""}>{option}</span>
+                  {isCorrect && <CheckCircle className="h-5 w-5 text-green-500" />}
                 </div>
               </div>
             );
           })}
         </div>
 
+        {/* Responses Stats */}
         <div className="space-y-4">
           <div>
             <div className="flex justify-between mb-1">
               <span className="text-sm font-medium">
-                Student Responses: {answersForCurrentQuestion.length}/
-                {uniqueStudents.length}
+                Student Responses: {answersForCurrentQuestion.length}/{uniqueStudents.length}
               </span>
               <span className="text-sm text-muted-foreground">
-                {Math.round(
-                  (answersForCurrentQuestion.length /
-                    Math.max(1, uniqueStudents.length)) *
-                    100
-                )}
-                %
+                {Math.round((answersForCurrentQuestion.length / Math.max(1, uniqueStudents.length)) * 100)}%
               </span>
             </div>
             <Progress
               value={
-                (answersForCurrentQuestion.length /
-                  Math.max(1, uniqueStudents.length)) *
-                100
+                (answersForCurrentQuestion.length / Math.max(1, uniqueStudents.length)) * 100
               }
             />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
+            {/* Correct Count */}
             <Card className="flex-1">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center text-green-600">
@@ -190,16 +170,12 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">
+                <div className="text-2xl font-bold">
                   {correctCount}
-                  <span className="text-lg text-muted-foreground ml-1">
+                  <span className="text-sm text-muted-foreground ml-1">
                     (
                     {answersForCurrentQuestion.length > 0
-                      ? Math.round(
-                          (correctCount /
-                            answersForCurrentQuestion.length) *
-                            100
-                        )
+                      ? Math.round((correctCount / answersForCurrentQuestion.length) * 100)
                       : 0}
                     %)
                   </span>
@@ -207,6 +183,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
               </CardContent>
             </Card>
 
+            {/* Incorrect Count */}
             <Card className="flex-1">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center text-red-600">
@@ -215,16 +192,12 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">
+                <div className="text-2xl font-bold">
                   {incorrectCount}
-                  <span className="text-lg text-muted-foreground ml-1">
+                  <span className="text-sm text-muted-foreground ml-1">
                     (
                     {answersForCurrentQuestion.length > 0
-                      ? Math.round(
-                          (incorrectCount /
-                            answersForCurrentQuestion.length) *
-                            100
-                        )
+                      ? Math.round((incorrectCount / answersForCurrentQuestion.length) * 100)
                       : 0}
                     %)
                   </span>
@@ -235,6 +208,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
         </div>
       </div>
 
+      {/* Connected Students */}
       <div className="mt-6">
         <h3 className="font-medium text-lg mb-2">
           Connected Students ({uniqueStudents.length})
@@ -245,10 +219,7 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
               const studentName =
                 studentNames[studentId] || `Student ${studentId.substring(0, 4)}`;
               return (
-                <Card
-                  key={studentId}
-                  className="p-2 flex items-center space-x-2"
-                >
+                <Card key={studentId} className="p-2 flex items-center space-x-2">
                   <div className="bg-blue-100 text-blue-500 p-2 rounded-full">
                     <User className="h-4 w-4" />
                   </div>
@@ -259,10 +230,10 @@ const ActiveQuiz: React.FC<ActiveQuizProps> = ({
           </div>
         ) : (
           <Card className="border-dashed border-2 bg-gray-50">
-            <CardContent className="flex flex-col items-center justify-center py-6">
+            <CardContent className="flex flex-col items-center justify-center py-6 text-center">
               <UserPlus className="h-10 w-10 text-muted-foreground mb-2" />
               <h3 className="text-lg font-medium">Waiting for students to join</h3>
-              <p className="text-muted-foreground text-center max-w-md">
+              <p className="text-muted-foreground text-sm max-w-md">
                 Share your room code with students to let them join the quiz.
               </p>
             </CardContent>
