@@ -1,10 +1,37 @@
-
 import React, { useState, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { QuizResult, Quiz } from "@/types/quiz";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, XAxis, YAxis, Bar, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { AlertCircle, Award, BarChart2, FileText, Users, Download } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BarChart,
+  XAxis,
+  YAxis,
+  Bar,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
+import {
+  AlertCircle,
+  Award,
+  BarChart2,
+  FileText,
+  Users,
+  Download,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface QuizResultsProps {
@@ -14,77 +41,61 @@ interface QuizResultsProps {
 
 const QuizResults: React.FC<QuizResultsProps> = ({ results, quizzes }) => {
   const [selectedQuiz, setSelectedQuiz] = useState<string>("all");
-  
+
   const filteredResults = useMemo(() => {
-    if (selectedQuiz === "all") {
-      return results;
-    }
-    return results.filter(result => result.quizId === selectedQuiz);
+    if (selectedQuiz === "all") return results;
+    return results.filter((r) => r.quizId === selectedQuiz);
   }, [results, selectedQuiz]);
-  
+
   const chartData = useMemo(() => {
-    const data: { name: string; score: number; color: string }[] = [];
-    
-    filteredResults.forEach(result => {
-      const percentScore = Math.round((result.score / result.totalQuestions) * 100);
-      let color = "#6366f1"; // Default color
-      
-      if (percentScore >= 80) {
-        color = "#22c55e"; // Green for high scores
-      } else if (percentScore < 50) {
-        color = "#ef4444"; // Red for low scores
-      } else {
-        color = "#f59e0b"; // Amber for medium scores
-      }
-      
-      data.push({
-        name: result.studentName,
-        score: percentScore,
-        color
-      });
-    });
-    
-    return data.sort((a, b) => b.score - a.score).slice(0, 10); // Top 10 scores
-  }, [filteredResults]);
-  
-  const averageScore = useMemo(() => {
-    if (filteredResults.length === 0) return 0;
-    const total = filteredResults.reduce((sum, result) => {
-      return sum + (result.score / result.totalQuestions) * 100;
-    }, 0);
-    return Math.round(total / filteredResults.length);
-  }, [filteredResults]);
-  
-  const uniqueStudents = useMemo(() => {
-    return new Set(filteredResults.map(r => r.studentId)).size;
+    return filteredResults
+      .map((result) => {
+        const percent = Math.round(
+          (result.score / result.totalQuestions) * 100
+        );
+        const color =
+          percent >= 80 ? "#22c55e" : percent < 50 ? "#ef4444" : "#f59e0b";
+        return {
+          name: result.studentName,
+          score: percent,
+          color,
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
   }, [filteredResults]);
 
-  // Function to download quiz results as CSV
+  const averageScore = useMemo(() => {
+    if (filteredResults.length === 0) return 0;
+    const total = filteredResults.reduce(
+      (sum, r) => sum + (r.score / r.totalQuestions) * 100,
+      0
+    );
+    return Math.round(total / filteredResults.length);
+  }, [filteredResults]);
+
+  const uniqueStudents = useMemo(() => {
+    return new Set(filteredResults.map((r) => r.studentId)).size;
+  }, [filteredResults]);
+
   const downloadResults = () => {
-    // Create CSV header
-    let csvContent = "Student Name,Quiz Name,Score,Percentage,Date\n";
-    
-    // Add data rows
-    filteredResults.forEach(result => {
-      const quiz = quizzes.find(q => q.id === result.quizId);
-      const quizName = quiz ? quiz.title : "Unknown Quiz";
-      const percentage = Math.round((result.score / result.totalQuestions) * 100);
-      const date = new Date().toLocaleDateString(); // Use current date as fallback since timestamp is missing
-      
-      csvContent += `"${result.studentName}","${quizName}","${result.score}/${result.totalQuestions}",${percentage}%,"${date}"\n`;
+    let csv = "Student Name,Quiz Name,Score,Percentage,Date\n";
+    filteredResults.forEach((r) => {
+      const quiz = quizzes.find((q) => q.id === r.quizId);
+      const percent = Math.round((r.score / r.totalQuestions) * 100);
+      csv += `"${r.studentName}","${quiz?.title || "Unknown"}","${r.score}/${
+        r.totalQuestions
+      }",${percent}%,"${new Date().toLocaleDateString()}"\n`;
     });
-    
-    // Create download link
-    const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+    const uri = encodeURI("data:text/csv;charset=utf-8," + csv);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `quiz-results-${selectedQuiz === "all" ? "all" : "quiz-" + selectedQuiz}.csv`);
+    link.setAttribute("href", uri);
+    link.setAttribute(
+      "download",
+      `quiz-results-${selectedQuiz === "all" ? "all" : selectedQuiz}.csv`
+    );
     document.body.appendChild(link);
-    
-    // Download file
     link.click();
-    
-    // Clean up
     document.body.removeChild(link);
   };
 
@@ -101,30 +112,33 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, quizzes }) => {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <h2 className="text-2xl font-bold">Quiz Results</h2>
-        
-        <div className="flex gap-2 items-center">
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <Select value={selectedQuiz} onValueChange={setSelectedQuiz}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Select a quiz" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Quizzes</SelectItem>
-              {quizzes.map(quiz => (
-                <SelectItem key={quiz.id} value={quiz.id}>{quiz.title}</SelectItem>
+              {quizzes.map((quiz) => (
+                <SelectItem key={quiz.id} value={quiz.id}>
+                  {quiz.title}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={downloadResults}
             disabled={filteredResults.length === 0}
+            className="w-full sm:w-auto"
           >
             <Download className="h-4 w-4 mr-1" />
             Download Report
@@ -135,27 +149,33 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, quizzes }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Average Score
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex items-center">
             <Award className="h-5 w-5 mr-2 text-amber-500" />
             <div className="text-2xl font-bold">{averageScore}%</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Quizzes Completed</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Quizzes Completed
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex items-center">
             <FileText className="h-5 w-5 mr-2 text-blue-500" />
             <div className="text-2xl font-bold">{filteredResults.length}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Students Participated</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Students Participated
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex items-center">
             <Users className="h-5 w-5 mr-2 text-green-500" />
@@ -171,7 +191,8 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, quizzes }) => {
             Performance Overview
           </CardTitle>
           <CardDescription>
-            Top student performances {selectedQuiz !== "all" && "for selected quiz"}
+            Top student performances{" "}
+            {selectedQuiz !== "all" && "for selected quiz"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -180,35 +201,26 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, quizzes }) => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
-                  margin={{
-                    top: 20,
-                    right: 30,
-                    left: 20,
-                    bottom: 40,
-                  }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
                 >
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
+                  <XAxis
+                    dataKey="name"
+                    angle={-30}
                     textAnchor="end"
-                    height={70}
+                    height={60}
                     tick={{ fontSize: 12 }}
                   />
-                  <YAxis 
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                  <Tooltip 
-                    formatter={(value) => [`${value}%`, "Score"]}
+                  <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip
+                    formatter={(v) => [`${v}%`, "Score"]}
                     labelStyle={{ color: "black" }}
-                    contentStyle={{ backgroundColor: "white", borderRadius: "8px" }}
+                    contentStyle={{
+                      backgroundColor: "white",
+                      borderRadius: "8px",
+                    }}
                   />
                   <Legend />
-                  <Bar 
-                    name="Score (%)" 
-                    dataKey="score" 
-                    radius={[4, 4, 0, 0]}
-                  >
+                  <Bar name="Score (%)" dataKey="score" radius={[4, 4, 0, 0]}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
