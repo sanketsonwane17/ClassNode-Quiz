@@ -1,6 +1,12 @@
-
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +16,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const StudentJoin = () => {
-
   const { login, setRoomCode } = useAuth();
   const [name, setName] = useState("");
-
   const [roomCode, setRoomCodeState] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const { roomCode: urlRoomCode } = useParams();
@@ -21,19 +25,18 @@ const StudentJoin = () => {
 
   useEffect(() => {
     if (urlRoomCode) {
-
       setRoomCodeState(urlRoomCode);
     }
   }, [urlRoomCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       toast.error("Please enter your name");
       return;
     }
-    
+
     if (!roomCode.trim()) {
       toast.error("Please enter a room code");
       return;
@@ -42,10 +45,8 @@ const StudentJoin = () => {
     setIsValidating(true);
 
     try {
-      // Check if room code exists and is active
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-
         .select("id, is_active, room_code, title")
         .eq("room_code", roomCode.toUpperCase())
         .single();
@@ -62,7 +63,6 @@ const StudentJoin = () => {
         return;
       }
 
-      // Create a student profile
       const { data: studentData, error: studentError } = await supabase
         .from("students")
         .insert([{ name: name.trim() }])
@@ -76,24 +76,18 @@ const StudentJoin = () => {
         return;
       }
 
-      // Store the room code and student ID in localStorage for persistence
       localStorage.setItem("quizRoomCode", roomCode.toUpperCase());
       localStorage.setItem("studentId", studentData.id);
-      
-     
-      // Set room code in auth context
+
       setRoomCode(roomCode.toUpperCase());
-      
-      // Login the student
       login(name, "student");
+
       console.log("Student joined successfully:", {
         studentId: studentData.id,
         roomCode: roomCode.toUpperCase(),
         quizTitle: quizData.title
       });
- 
-      
-      // Navigate to student dashboard
+
       navigate("/student");
     } catch (error) {
       console.error("Error joining quiz:", error);
@@ -104,18 +98,19 @@ const StudentJoin = () => {
   };
 
   return (
-    <div className="min-h-screen quiz-pattern flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen quiz-pattern flex items-center justify-center px-4 py-6">
+      <div className="w-full sm:max-w-md">
         <Card className="border-2 border-quiz-primary/20 shadow-lg">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold tracking-tight text-center">
+            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-center">
               <span className="text-quiz-primary">Class</span>
               <span className="text-quiz-secondary">Node</span>
             </CardTitle>
-            <CardDescription className="text-center">
+            <CardDescription className="text-center text-sm sm:text-base">
               Join a quiz session as a student
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -127,7 +122,7 @@ const StudentJoin = () => {
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="roomCode">Room Code</Label>
                 <Input
@@ -139,9 +134,9 @@ const StudentJoin = () => {
                   maxLength={6}
                 />
               </div>
-              
-              <Button 
-                type="submit" 
+
+              <Button
+                type="submit"
                 className="w-full quiz-gradient"
                 disabled={isValidating}
               >
@@ -149,13 +144,20 @@ const StudentJoin = () => {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col justify-center gap-2 text-sm text-gray-500">
-            <p>Enter the room code provided by your teacher</p>
-            <a href="/" className="text-quiz-primary hover:underline">Teacher? Login here</a>
+
+          <CardFooter className="flex flex-col items-center gap-2 text-sm text-gray-500 text-center">
+            <p className="text-xs sm:text-sm">
+              Enter the room code provided by your teacher
+            </p>
+            <a
+              href="/"
+              className="text-quiz-primary hover:underline"
+            >
+              Teacher? Login here
+            </a>
           </CardFooter>
         </Card>
       </div>
-
     </div>
   );
 };
