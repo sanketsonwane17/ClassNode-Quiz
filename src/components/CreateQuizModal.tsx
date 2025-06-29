@@ -17,6 +17,7 @@ interface CreateQuizModalProps {
   onClose: () => void;
 }
 
+
 const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) => {
   const { createQuiz, loading } = useQuiz();
   const { user } = useAuth();
@@ -45,33 +46,27 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
   };
 
   const handleAddQuestion = () => {
-    // Validation
     if (!currentQuestionText.trim()) {
       toast.error("Please enter a question");
       return;
     }
-
     if (currentOptions.some(option => !option.trim())) {
       toast.error("Please fill in all options");
       return;
     }
 
     const newQuestion: QuizQuestion = {
-      id: editingQuestionIndex !== null ? 
-        questions[editingQuestionIndex].id : 
-        Date.now().toString(),
+      id: editingQuestionIndex !== null ? questions[editingQuestionIndex].id : Date.now().toString(),
       text: currentQuestionText,
       options: [...currentOptions],
-      correctOption
+      correctOption,
     };
 
     if (editingQuestionIndex !== null) {
-      // Update existing question
       const updatedQuestions = [...questions];
       updatedQuestions[editingQuestionIndex] = newQuestion;
       setQuestions(updatedQuestions);
     } else {
-      // Add new question
       setQuestions([...questions, newQuestion]);
     }
 
@@ -98,29 +93,20 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
   };
 
   const handleSubmit = () => {
-    // Validation
     if (!title.trim()) {
       toast.error("Please enter a quiz title");
       return;
     }
-
     if (!description.trim()) {
       toast.error("Please enter a quiz description");
       return;
     }
-
     if (questions.length === 0) {
       toast.error("Please add at least one question");
       return;
     }
 
-    createQuiz({
-      title,
-      description,
-      questions,
-      timePerQuestion
-    });
-
+    createQuiz({ title, description, questions, timePerQuestion });
     resetForm();
     onClose();
   };
@@ -136,7 +122,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
         </DialogHeader>
 
         <div className="space-y-4 my-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="title">Quiz Title</Label>
               <Input
@@ -158,7 +144,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
               />
             </div>
           </div>
-          
+
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -174,7 +160,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
             <h3 className="text-lg font-medium mb-2">
               {editingQuestionIndex !== null ? "Edit Question" : "Add New Question"}
             </h3>
-            
+
             <div className="space-y-3">
               <div>
                 <Label htmlFor="questionText">Question</Label>
@@ -186,18 +172,17 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                   className="resize-none"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label>Options (select the correct one)</Label>
                 {currentOptions.map((option, index) => (
-                  <div key={index} className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        value={option}
-                        onChange={(e) => handleOptionChange(index, e.target.value)}
-                        placeholder={`Option ${index + 1}`}
-                      />
-                    </div>
+                  <div key={index} className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      value={option}
+                      onChange={(e) => handleOptionChange(index, e.target.value)}
+                      placeholder={`Option ${index + 1}`}
+                      className="flex-1"
+                    />
                     <Button
                       type="button"
                       variant={correctOption === index ? "default" : "outline"}
@@ -209,20 +194,16 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                   </div>
                 ))}
               </div>
-              
-              <div className="flex justify-end space-x-2">
+
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
                 {editingQuestionIndex !== null && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={resetQuestionForm}
-                  >
+                  <Button type="button" variant="outline" onClick={resetQuestionForm}>
                     <X className="h-4 w-4 mr-1" />
                     Cancel Edit
                   </Button>
                 )}
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   onClick={handleAddQuestion}
                   className={editingQuestionIndex !== null ? "bg-amber-500 hover:bg-amber-600" : ""}
                 >
@@ -249,19 +230,15 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                 {questions.map((question, index) => (
                   <Card key={index} className="overflow-hidden">
                     <CardContent className="p-4">
-                      <div className="flex justify-between">
+                      <div className="flex flex-col sm:flex-row justify-between gap-2">
                         <div className="font-medium">Q{index + 1}: {question.text}</div>
                         <div className="flex space-x-1">
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => handleEditQuestion(index)}
-                          >
+                          <Button size="sm" variant="ghost" onClick={() => handleEditQuestion(index)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             className="text-red-500 hover:text-red-700"
                             onClick={() => handleDeleteQuestion(index)}
                           >
@@ -273,7 +250,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                         <div className="font-medium">Options:</div>
                         <ol className="list-decimal list-inside">
                           {question.options.map((option, optIndex) => (
-                            <li 
+                            <li
                               key={optIndex}
                               className={optIndex === question.correctOption ? "text-green-600 font-medium" : ""}
                             >
@@ -290,11 +267,15 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading} className="quiz-gradient">
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full sm:w-auto quiz-gradient"
+          >
             {loading ? "Creating..." : "Create Quiz"}
           </Button>
         </DialogFooter>
