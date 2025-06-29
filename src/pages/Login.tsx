@@ -82,16 +82,16 @@ const Login = () => {
 
   if (showTeacherAuth) {
     return (
-      <div className="min-h-screen quiz-pattern flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen quiz-pattern flex items-center justify-center px-4 py-6">
+        <div className="w-full sm:max-w-md">
           <Card className="border-2 border-quiz-primary/20 shadow-lg">
             <CardHeader className="space-y-1">
-              <CardTitle className="text-3xl font-bold tracking-tight text-center">
+              <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-center">
                 <span className="text-quiz-primary">Class</span>
                 <span className="text-quiz-secondary">Node</span>
               </CardTitle>
-              <CardDescription className="text-center">
-                Teacher Portal - Sign in or create an account Updated
+              <CardDescription className="text-center text-sm sm:text-base">
+                Teacher Portal - Sign in or create an account
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -100,9 +100,11 @@ const Login = () => {
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
                 </TabsList>
-                
+
+                {/* Login */}
                 <TabsContent value="login">
                   <form onSubmit={handleTeacherLogin} className="space-y-4">
+                    {/* Email */}
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <div className="relative">
@@ -118,7 +120,8 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                    
+
+                    {/* Password */}
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
                       <div className="relative">
@@ -134,12 +137,8 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full quiz-gradient" 
-                      disabled={isLoading}
-                    >
+
+                    <Button type="submit" className="w-full quiz-gradient" disabled={isLoading}>
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -151,9 +150,11 @@ const Login = () => {
                     </Button>
                   </form>
                 </TabsContent>
-                
+
+                {/* Signup */}
                 <TabsContent value="signup">
                   <form onSubmit={handleTeacherSignup} className="space-y-4">
+                    {/* Name */}
                     <div className="space-y-2">
                       <Label htmlFor="teacherName">Full Name</Label>
                       <div className="relative">
@@ -168,7 +169,8 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                    
+
+                    {/* Email */}
                     <div className="space-y-2">
                       <Label htmlFor="signupEmail">Email</Label>
                       <div className="relative">
@@ -184,7 +186,8 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                    
+
+                    {/* Password */}
                     <div className="space-y-2">
                       <Label htmlFor="signupPassword">Password</Label>
                       <div className="relative">
@@ -200,7 +203,8 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                    
+
+                    {/* Confirm Password */}
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword">Confirm Password</Label>
                       <div className="relative">
@@ -216,12 +220,8 @@ const Login = () => {
                         />
                       </div>
                     </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full quiz-gradient"
-                      disabled={isLoading}
-                    >
+
+                    <Button type="submit" className="w-full quiz-gradient" disabled={isLoading}>
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -236,8 +236,8 @@ const Login = () => {
               </Tabs>
             </CardContent>
             <CardFooter className="flex justify-center">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => setShowTeacherAuth(false)}
                 size="sm"
                 disabled={isLoading}
@@ -251,29 +251,28 @@ const Login = () => {
     );
   }
 
+  // === Main Role Selection View ===
   return (
-    <div className="min-h-screen quiz-pattern flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen quiz-pattern flex items-center justify-center px-4 py-6">
+      <div className="w-full sm:max-w-md">
         <Card className="border-2 border-quiz-primary/20 shadow-lg">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold tracking-tight text-center">
+            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-center">
               <span className="text-quiz-primary">Class</span>
               <span className="text-quiz-secondary">Node</span>
             </CardTitle>
-            <CardDescription className="text-center">
+            <CardDescription className="text-center text-sm sm:text-base">
               Welcome to ClassNode - Select your role to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRoleSelection} className="space-y-4">
-             
-              
               <div className="space-y-2">
                 <Label>I am a:</Label>
-                <RadioGroup 
-                  value={selectedRole} 
+                <RadioGroup
+                  value={selectedRole}
                   onValueChange={(value) => setSelectedRole(value as "student" | "teacher")}
-                  className="flex space-x-4"
+                  className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="student" id="student" />
@@ -285,18 +284,14 @@ const Login = () => {
                   </div>
                 </RadioGroup>
               </div>
-              
+
               <Button type="submit" className="w-full quiz-gradient">
                 Continue
               </Button>
             </form>
           </CardContent>
           <CardFooter className="flex justify-center text-sm text-gray-500">
-            {selectedRole === "student" ? (
-              <p>made with &#9829; by team ClassNode</p>
-            ) : (
-              <p>made with &#9829; by team ClassNode</p>
-            )}
+            <p>made with &#9829; by team ClassNode</p>
           </CardFooter>
         </Card>
       </div>
