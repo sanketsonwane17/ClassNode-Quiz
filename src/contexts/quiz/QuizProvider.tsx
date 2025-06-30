@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { QuizContextType, Quiz, QuizResult, StudentAnswer } from "@/types/quiz";
 import { QuizContext } from "./quizContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +13,7 @@ import {
   submitAnswer as submitAnswerService,
   submitQuizResult as submitQuizResultService
 } from "@/services/quizService";
+import { supabase } from "@/integrations/supabase/client";
 
 export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -31,7 +31,6 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  
   // For students, check if there's an active quiz for their room code
   useEffect(() => {
     if (user && user.role === 'student' && roomCode) {
@@ -60,10 +59,10 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: quizData.id,
           title: quizData.title,
           description: quizData.description || "",
-          timePerQuestion: Number(quizData.time_per_question),
+          timePerQuestion: quizData.time_per_question,
           isActive: quizData.is_active,
           roomCode: quizData.room_code,
-          createdAt: quizData.created_at,
+          createdAt: new Date(quizData.created_at).getTime(), // Fix TypeScript error by converting to number
           createdBy: quizData.created_by,
           questions: quizData.quiz_questions
             .sort((a, b) => a.order_num - b.order_num)
@@ -115,18 +114,99 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [roomCode, user]);
 
+  // Fetch student answers for active quiz with real student names
+  const fetchStudentAnswers = async (quizId: string) => {
+    try {
+      const { data: answers, error } = await supabase
+        .from('student_answers')
+        .select(`
+          *,
+          students!student_answers_student_id_fkey (
+            name
+          )
+        `)
+        .eq('quiz_id', quizId);
+      
+      if (error) {
+        console.error('Error fetching student answers:', error);
+        return;
+      }
+
+      if (answers) {
+        const formattedAnswers: StudentAnswer[] = answers.map(answer => ({
+          studentId: answer.student_id,
+          studentName: answer.students?.name || `Student ${answer.student_id.substring(0, 4)}`,
+          quizId: answer.quiz_id,
+          questionId: answer.question_id,
+          selectedOption: Number(answer.selected_option),
+          timeSpent: answer.time_spent || 0,
+          correct: answer.is_correct
+        }));
+        
+        setStudentAnswers(formattedAnswers);
+        console.log("Fetched student answers with real names:", formattedAnswers);
+      }
+    } catch (error) {
+      console.error('Error in fetchStudentAnswers:', error);
+    }
+  };
 
   // Poll for new student answers when there's an active quiz
   useEffect(() => {
     if (!activeQuiz) return;
     
+    // Initial fetch
+    fetchStudentAnswers(activeQuiz.id);
+    
     const pollInterval = setInterval(() => {
-      // This could be replaced with a real-time subscription if available
       console.log("Polling for new student answers...");
-      // This would be the place to fetch the latest student answers for the active quiz
-    }, 5000);
+      fetchStudentAnswers(activeQuiz.id);
+    }, 3000); // Poll every 3 seconds
     
     return () => clearInterval(pollInterval);
+  }, [activeQuiz]);
+
+  // Set up real-time subscription for student answers with student names
+  useEffect(() => {
+    if (!activeQuiz) return;
+
+    const channel = supabase
+      .channel('student-answers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'student_answers',
+          filter: `quiz_id=eq.${activeQuiz.id}`
+        },
+        async (payload) => {
+          console.log('New student answer received:', payload);
+          
+          // Fetch the student name for the new answer
+          const { data: studentData } = await supabase
+            .from('students')
+            .select('name')
+            .eq('id', payload.new.student_id)
+            .single();
+          
+          const newAnswer: StudentAnswer = {
+            studentId: payload.new.student_id,
+            studentName: studentData?.name || `Student ${payload.new.student_id.substring(0, 4)}`,
+            quizId: payload.new.quiz_id,
+            questionId: payload.new.question_id,
+            selectedOption: Number(payload.new.selected_option),
+            timeSpent: Number(payload.new.time_spent) || 0,
+            correct: payload.new.is_correct
+          };
+          setStudentAnswers(prev => [...prev, newAnswer]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeQuiz]);
 
   const loadQuizzes = async () => {
@@ -197,6 +277,7 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveQuiz(quizToLaunch);
         setCurrentQuestion(0);
         setStudentAnswers([]);
+        fetchStudentAnswers(quizId);
       }
     } finally {
       setLoading(false);
@@ -212,7 +293,8 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (success) {
         setActiveQuiz(null);
         setCurrentQuestion(0);
-        // Re-fetch the results to update the teacher's dashboard
+        setStudentAnswers([]);
+        setRoomCode(null);
         loadResults();
       }
     } finally {
@@ -229,7 +311,6 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
         correct: isCorrect
       };
       
-      // Add the new answer to our local state to update UI immediately
       setStudentAnswers(prev => [...prev, fullAnswer]);
       console.log("Added new student answer to state:", fullAnswer);
       return isCorrect;
@@ -242,7 +323,6 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitQuizResult = async (result: QuizResult): Promise<void> => {
     try {
       const updatedResult = await submitQuizResultService(result);
-      // Add the result to the results array to update UI immediately
       setResults(prev => [...prev, updatedResult]);
     } catch (error) {
       console.error("Error in submitQuizResult:", error);
