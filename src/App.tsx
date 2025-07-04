@@ -12,6 +12,7 @@ import StudentJoin from "./pages/StudentJoin";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { QuizProvider } from "./contexts/quiz";
+import { Analytics } from '@vercel/analytics/react';
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient();
@@ -42,5 +43,16 @@ const App = () => {
     </React.StrictMode>
   );
 };
+
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <>
+      <Component {...pageProps} />
+      <Analytics />
+    </>
+  );
+}
+
 
 export default App;
