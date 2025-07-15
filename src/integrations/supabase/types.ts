@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      joined_students: {
+        Row: {
+          id: string
+          joined_at: string
+          quiz_id: string
+          student_id: string
+          student_name: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          quiz_id: string
+          student_id: string
+          student_name: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          quiz_id?: string
+          student_id?: string
+          student_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "joined_students_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "joined_students_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_questions: {
         Row: {
           correct_option: number
@@ -86,6 +125,47 @@ export type Database = {
           },
         ]
       }
+      quiz_sessions: {
+        Row: {
+          created_at: string
+          current_question: number | null
+          id: string
+          launched_at: string | null
+          question_start_time: string | null
+          quiz_id: string
+          session_state: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_question?: number | null
+          id?: string
+          launched_at?: string | null
+          question_start_time?: string | null
+          quiz_id: string
+          session_state?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_question?: number | null
+          id?: string
+          launched_at?: string | null
+          question_start_time?: string | null
+          quiz_id?: string
+          session_state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_sessions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: true
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quizzes: {
         Row: {
           created_at: string
@@ -93,6 +173,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          quiz_type: string | null
           room_code: string
           time_per_question: number
           title: string
@@ -103,6 +184,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          quiz_type?: string | null
           room_code: string
           time_per_question?: number
           title: string
@@ -113,6 +195,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          quiz_type?: string | null
           room_code?: string
           time_per_question?: number
           title?: string
@@ -131,30 +214,36 @@ export type Database = {
         Row: {
           id: string
           is_correct: boolean
+          points: number | null
           question_id: string
           quiz_id: string
           selected_option: number
           student_id: string
+          submission_timestamp: string | null
           submitted_at: string
           time_spent: number
         }
         Insert: {
           id: string
           is_correct: boolean
+          points?: number | null
           question_id: string
           quiz_id: string
           selected_option: number
           student_id: string
+          submission_timestamp?: string | null
           submitted_at?: string
           time_spent: number
         }
         Update: {
           id?: string
           is_correct?: boolean
+          points?: number | null
           question_id?: string
           quiz_id?: string
           selected_option?: number
           student_id?: string
+          submission_timestamp?: string | null
           submitted_at?: string
           time_spent?: number
         }
@@ -229,7 +318,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_quiz_points: {
+        Args: {
+          quiz_start_time: string
+          submission_time: string
+          is_correct: boolean
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
