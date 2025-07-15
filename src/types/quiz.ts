@@ -15,6 +15,7 @@ export type Quiz = {
   createdBy: string;
   roomCode?: string;
   isActive?: boolean;
+  quizType?: 'traditional' | 'classnode';
 };
 
 export type StudentAnswer = {
@@ -25,6 +26,8 @@ export type StudentAnswer = {
   selectedOption: number;
   timeSpent: number;
   correct: boolean;
+  points?: number;
+  submissionTimestamp?: string;
 };
 
 export type QuizResult = {
@@ -50,4 +53,38 @@ export type QuizContextType = {
   results: QuizResult[];
   submitQuizResult: (result: QuizResult) => Promise<void>;
   loading: boolean;
+  // Classnode quiz specific
+  classnodeCurrentQuestion: number;
+  nextClassnodeQuestion: () => void;
+  submitClassnodeAnswer: (answer: Omit<StudentAnswer, "correct" | "points">) => Promise<{ correct: boolean; points: number }>;
+  classnodeRankings: StudentRanking[];
+  questionStartTime: Date | null;
+  isQuestionActive: boolean;
+};
+
+export type StudentRanking = {
+  studentId: string;
+  studentName: string;
+  totalPoints: number;
+  totalMarks: number;
+  rank: number;
+};
+
+export type QuizSession = {
+  id: string;
+  quizId: string;
+  sessionState: 'created' | 'pre-launch' | 'active' | 'completed';
+  launchedAt?: string;
+  currentQuestion: number;
+  questionStartTime?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type JoinedStudent = {
+  id: string;
+  quizId: string;
+  studentId: string;
+  studentName: string;
+  joinedAt: string;
 };
