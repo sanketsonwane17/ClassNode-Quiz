@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { QuizContextType, Quiz, QuizResult, StudentAnswer } from "@/types/quiz";
+import { QuizContextType, Quiz, QuizResult, StudentAnswer, StudentRanking } from "@/types/quiz";
 import { QuizContext } from "./quizContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -22,6 +21,13 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [studentAnswers, setStudentAnswers] = useState<StudentAnswer[]>([]);
   const [results, setResults] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  
+  // Classnode quiz specific state
+  const [classnodeCurrentQuestion, setClassnodeCurrentQuestion] = useState<number>(0);
+  const [classnodeRankings, setClassnodeRankings] = useState<StudentRanking[]>([]);
+  const [questionStartTime, setQuestionStartTime] = useState<Date | null>(null);
+  const [isQuestionActive, setIsQuestionActive] = useState<boolean>(false);
+  
   const { user, roomCode, setRoomCode } = useAuth();
 
   useEffect(() => {
@@ -62,8 +68,9 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
           timePerQuestion: quizData.time_per_question,
           isActive: quizData.is_active,
           roomCode: quizData.room_code,
-          createdAt: new Date(quizData.created_at).getTime(), // Fix TypeScript error by converting to number
+          createdAt: new Date(quizData.created_at).getTime(),
           createdBy: quizData.created_by,
+          quizType: (quizData as any).quiz_type || 'traditional',
           questions: quizData.quiz_questions
             .sort((a, b) => a.order_num - b.order_num)
             .map(q => ({
@@ -330,6 +337,139 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Classnode quiz functions
+  const nextClassnodeQuestion = async () => {
+    if (!activeQuiz || activeQuiz.quizType !== 'classnode') return;
+    
+    const nextQuestion = classnodeCurrentQuestion + 1;
+    if (nextQuestion >= activeQuiz.questions.length) {
+      // End quiz
+      await endQuiz();
+      return;
+    }
+    
+    setClassnodeCurrentQuestion(nextQuestion);
+    setQuestionStartTime(new Date());
+    setIsQuestionActive(true);
+    
+    // Update rankings after each question
+    await updateClassnodeRankings();
+    
+    // Broadcast question change via Supabase
+    const channel = supabase.channel('classnode-question-change');
+    channel.send({
+      type: 'broadcast',
+      event: 'question_changed',
+      payload: { 
+        questionIndex: nextQuestion, 
+        startTime: new Date().toISOString(),
+        quizId: activeQuiz.id 
+      }
+    });
+  };
+
+  const submitClassnodeAnswer = async (answer: Omit<StudentAnswer, "correct" | "points">): Promise<{ correct: boolean; points: number }> => {
+    if (!activeQuiz || !questionStartTime) {
+      return { correct: false, points: 0 };
+    }
+
+    try {
+      const submissionTime = new Date();
+      const question = activeQuiz.questions.find(q => q.id === answer.questionId);
+      const isCorrect = question ? answer.selectedOption === question.correctOption : false;
+      
+      // Calculate points based on timing
+      const timeDiff = (submissionTime.getTime() - questionStartTime.getTime()) / 1000;
+      let points = 0;
+      if (isCorrect) {
+        if (timeDiff <= 3) points = 1000;
+        else if (timeDiff <= 6) points = 800;
+        else if (timeDiff <= 10) points = 500;
+      }
+
+      // Submit to database
+      const { error } = await supabase
+        .from('student_answers')
+        .insert({
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          student_id: answer.studentId,
+          quiz_id: answer.quizId,
+          question_id: answer.questionId,
+          selected_option: answer.selectedOption,
+          time_spent: answer.timeSpent,
+          is_correct: isCorrect,
+          points: points,
+          submission_timestamp: submissionTime.toISOString()
+        });
+
+      if (error) {
+        console.error("Error submitting classnode answer:", error);
+        return { correct: false, points: 0 };
+      }
+
+      const fullAnswer: StudentAnswer = {
+        ...answer,
+        correct: isCorrect,
+        points: points,
+        submissionTimestamp: submissionTime.toISOString()
+      };
+      
+      setStudentAnswers(prev => [...prev, fullAnswer]);
+      return { correct: isCorrect, points };
+    } catch (error) {
+      console.error("Error in submitClassnodeAnswer:", error);
+      return { correct: false, points: 0 };
+    }
+  };
+
+  const updateClassnodeRankings = async () => {
+    if (!activeQuiz) return;
+
+    try {
+      const { data: rankings, error } = await supabase
+        .from('student_answers')
+        .select(`
+          student_id,
+          students!student_answers_student_id_fkey (name),
+          points,
+          is_correct
+        `)
+        .eq('quiz_id', activeQuiz.id);
+
+      if (error || !rankings) return;
+
+      // Calculate total points and marks for each student
+      const studentStats = rankings.reduce((acc, answer) => {
+        const studentId = answer.student_id;
+        if (!acc[studentId]) {
+          acc[studentId] = {
+            studentId,
+            studentName: (answer.students as any)?.name || `Student ${studentId.substring(0, 4)}`,
+            totalPoints: 0,
+            totalMarks: 0
+          };
+        }
+        acc[studentId].totalPoints += answer.points || 0;
+        if (answer.is_correct) {
+          acc[studentId].totalMarks += 1;
+        }
+        return acc;
+      }, {} as Record<string, Omit<StudentRanking, 'rank'>>);
+
+      // Sort by points and assign ranks
+      const sortedStudents = Object.values(studentStats)
+        .sort((a, b) => b.totalPoints - a.totalPoints)
+        .map((student, index) => ({
+          ...student,
+          rank: index + 1
+        }));
+
+      setClassnodeRankings(sortedStudents.slice(0, 5)); // Top 5
+    } catch (error) {
+      console.error("Error updating classnode rankings:", error);
+    }
+  };
+
   return (
     <QuizContext.Provider
       value={{
@@ -345,7 +485,14 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
         studentAnswers,
         results,
         submitQuizResult,
-        loading
+        loading,
+        // Classnode quiz specific
+        classnodeCurrentQuestion,
+        nextClassnodeQuestion,
+        submitClassnodeAnswer,
+        classnodeRankings,
+        questionStartTime,
+        isQuestionActive
       }}
     >
       {children}
