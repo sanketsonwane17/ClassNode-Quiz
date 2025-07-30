@@ -17,7 +17,6 @@ interface CreateQuizModalProps {
   onClose: () => void;
 }
 
-
 const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) => {
   const { createQuiz, loading } = useQuiz();
   const { user } = useAuth();
@@ -46,27 +45,59 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
   };
 
   const handleAddQuestion = () => {
+    console.log("Adding/updating question:", { currentQuestionText, currentOptions, correctOption });
+    
+    // Enhanced validation
     if (!currentQuestionText.trim()) {
       toast.error("Please enter a question");
       return;
     }
+
+    if (currentQuestionText.trim().length < 5) {
+      toast.error("Question must be at least 5 characters long");
+      return;
+    }
+
     if (currentOptions.some(option => !option.trim())) {
       toast.error("Please fill in all options");
       return;
     }
 
+    if (currentOptions.some(option => option.trim().length < 1)) {
+      toast.error("Each option must have content");
+      return;
+    }
+
+    // Check for duplicate options
+    const trimmedOptions = currentOptions.map(opt => opt.trim().toLowerCase());
+    if (new Set(trimmedOptions).size !== trimmedOptions.length) {
+      toast.error("All options must be unique");
+      return;
+    }
+
+    if (correctOption < 0 || correctOption >= currentOptions.length) {
+      toast.error("Please select a valid correct option");
+      return;
+    }
+
     const newQuestion: QuizQuestion = {
-      id: editingQuestionIndex !== null ? questions[editingQuestionIndex].id : Date.now().toString(),
-      text: currentQuestionText,
-      options: [...currentOptions],
-      correctOption,
+      id: editingQuestionIndex !== null ? 
+        questions[editingQuestionIndex].id : 
+        `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      text: currentQuestionText.trim(),
+      options: currentOptions.map(opt => opt.trim()),
+      correctOption
     };
+    
+    console.log("Created question:", newQuestion);
 
     if (editingQuestionIndex !== null) {
+      // Update existing question
       const updatedQuestions = [...questions];
       updatedQuestions[editingQuestionIndex] = newQuestion;
       setQuestions(updatedQuestions);
     } else {
+      // Add new question
       setQuestions([...questions, newQuestion]);
     }
 
@@ -92,23 +123,73 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
     setCurrentOptions(updatedOptions);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    console.log("Submitting quiz:", { title, description, questions, timePerQuestion });
+    
+    // Enhanced validation
     if (!title.trim()) {
       toast.error("Please enter a quiz title");
       return;
     }
+
+    if (title.trim().length < 3) {
+      toast.error("Quiz title must be at least 3 characters long");
+      return;
+    }
+
     if (!description.trim()) {
       toast.error("Please enter a quiz description");
       return;
     }
+
+    if (description.trim().length < 10) {
+      toast.error("Quiz description must be at least 10 characters long");
+      return;
+    }
+
     if (questions.length === 0) {
       toast.error("Please add at least one question");
       return;
     }
 
-    createQuiz({ title, description, questions, timePerQuestion });
-    resetForm();
-    onClose();
+    if (questions.length > 50) {
+      toast.error("Maximum 50 questions allowed per quiz");
+      return;
+    }
+
+    if (timePerQuestion < 10 || timePerQuestion > 300) {
+      toast.error("Time per question must be between 10 and 300 seconds");
+      return;
+    }
+
+    // Validate all questions one more time
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      if (!question.text.trim()) {
+        toast.error(`Question ${i + 1} is missing text`);
+        return;
+      }
+      if (question.options.some(opt => !opt.trim())) {
+        toast.error(`Question ${i + 1} has empty options`);
+        return;
+      }
+    }
+
+    try {
+      await createQuiz({
+        title: title.trim(),
+        description: description.trim(),
+        questions,
+        timePerQuestion
+      });
+
+      resetForm();
+      onClose();
+      toast.success("Quiz created successfully!");
+    } catch (error) {
+      console.error("Error creating quiz:", error);
+      toast.error("Failed to create quiz. Please try again.");
+    }
   };
 
   return (
@@ -122,7 +203,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
         </DialogHeader>
 
         <div className="space-y-4 my-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="title">Quiz Title</Label>
               <Input
@@ -144,7 +225,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
               />
             </div>
           </div>
-
+          
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -160,7 +241,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
             <h3 className="text-lg font-medium mb-2">
               {editingQuestionIndex !== null ? "Edit Question" : "Add New Question"}
             </h3>
-
+            
             <div className="space-y-3">
               <div>
                 <Label htmlFor="questionText">Question</Label>
@@ -172,17 +253,18 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                   className="resize-none"
                 />
               </div>
-
+              
               <div className="space-y-3">
                 <Label>Options (select the correct one)</Label>
                 {currentOptions.map((option, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      value={option}
-                      onChange={(e) => handleOptionChange(index, e.target.value)}
-                      placeholder={`Option ${index + 1}`}
-                      className="flex-1"
-                    />
+                  <div key={index} className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        value={option}
+                        onChange={(e) => handleOptionChange(index, e.target.value)}
+                        placeholder={`Option ${index + 1}`}
+                      />
+                    </div>
                     <Button
                       type="button"
                       variant={correctOption === index ? "default" : "outline"}
@@ -194,16 +276,20 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                   </div>
                 ))}
               </div>
-
-              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
+              
+              <div className="flex justify-end space-x-2">
                 {editingQuestionIndex !== null && (
-                  <Button type="button" variant="outline" onClick={resetQuestionForm}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={resetQuestionForm}
+                  >
                     <X className="h-4 w-4 mr-1" />
                     Cancel Edit
                   </Button>
                 )}
-                <Button
-                  type="button"
+                <Button 
+                  type="button" 
                   onClick={handleAddQuestion}
                   className={editingQuestionIndex !== null ? "bg-amber-500 hover:bg-amber-600" : ""}
                 >
@@ -230,15 +316,19 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                 {questions.map((question, index) => (
                   <Card key={index} className="overflow-hidden">
                     <CardContent className="p-4">
-                      <div className="flex flex-col sm:flex-row justify-between gap-2">
+                      <div className="flex justify-between">
                         <div className="font-medium">Q{index + 1}: {question.text}</div>
                         <div className="flex space-x-1">
-                          <Button size="sm" variant="ghost" onClick={() => handleEditQuestion(index)}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => handleEditQuestion(index)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
                             className="text-red-500 hover:text-red-700"
                             onClick={() => handleDeleteQuestion(index)}
                           >
@@ -250,7 +340,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
                         <div className="font-medium">Options:</div>
                         <ol className="list-decimal list-inside">
                           {question.options.map((option, optIndex) => (
-                            <li
+                            <li 
                               key={optIndex}
                               className={optIndex === question.correctOption ? "text-green-600 font-medium" : ""}
                             >
@@ -267,15 +357,11 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose }) =>
           )}
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full sm:w-auto quiz-gradient"
-          >
+          <Button onClick={handleSubmit} disabled={loading} className="quiz-gradient">
             {loading ? "Creating..." : "Create Quiz"}
           </Button>
         </DialogFooter>

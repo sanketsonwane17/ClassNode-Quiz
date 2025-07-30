@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Quiz, QuizQuestion, StudentAnswer, QuizResult } from "@/types/quiz";
 import { toast } from "sonner";
@@ -140,6 +139,46 @@ export const createQuiz = async (
   userId: string
 ) => {
   try {
+    console.log("Creating quiz with data:", quizData);
+    
+    // Validate quiz data
+    if (!quizData.title || !quizData.title.trim()) {
+      toast.error("Quiz title is required");
+      return null;
+    }
+    
+    if (!quizData.questions || quizData.questions.length === 0) {
+      toast.error("Quiz must have at least one question");
+      return null;
+    }
+    
+    // Validate each question
+    for (let i = 0; i < quizData.questions.length; i++) {
+      const question = quizData.questions[i];
+      if (!question.text || !question.text.trim()) {
+        toast.error(`Question ${i + 1} text is required`);
+        return null;
+      }
+      
+      if (!question.options || question.options.length < 2) {
+        toast.error(`Question ${i + 1} must have at least 2 options`);
+        return null;
+      }
+      
+      if (question.correctOption < 0 || question.correctOption >= question.options.length) {
+        toast.error(`Question ${i + 1} has invalid correct option`);
+        return null;
+      }
+      
+      // Validate all options have text
+      for (let j = 0; j < question.options.length; j++) {
+        if (!question.options[j] || !question.options[j].trim()) {
+          toast.error(`Question ${i + 1}, option ${j + 1} cannot be empty`);
+          return null;
+        }
+      }
+    }
+    
     const newRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     const { data, error } = await supabase
@@ -160,13 +199,19 @@ export const createQuiz = async (
       return null;
     }
 
-    const questionInserts = quizData.questions.map((question, index) => ({
-      quiz_id: data.id,
-      text: question.text,
-      options: question.options,
-      correct_option: question.correctOption,
-      order_num: index + 1
-    }));
+    const questionInserts = quizData.questions.map((question, index) => {
+      console.log(`Processing question ${index + 1}:`, question);
+      return {
+        id: generateUUID(), // Ensure unique ID for each question
+        quiz_id: data.id,
+        text: question.text.trim(),
+        options: JSON.stringify(question.options), // Always serialize as JSON for consistency
+        correct_option: question.correctOption,
+        order_num: index + 1
+      };
+    });
+    
+    console.log("Inserting questions:", questionInserts);
 
     const { error: questionsError } = await supabase
       .from('quiz_questions')
@@ -308,20 +353,37 @@ export const submitAnswer = async (answer: Omit<StudentAnswer, "correct">) => {
   }
   
   try {
-    // Create a new student record
-    const { data: newStudent, error: createError } = await supabase
+    // First, check if a student with this name already exists for this quiz
+    const { data: existingStudent, error: searchError } = await supabase
       .from('students')
-      .insert({ name: answer.studentName })
-      .select()
+      .select('id')
+      .eq('name', answer.studentName)
+      .limit(1)
       .maybeSingle();
-      
-    if (createError) {
-      console.error("Error creating student:", createError);
-      toast.error("Failed to create student");
-      return false;
-    }
     
-    const studentId = newStudent?.id || generateUUID();
+    let studentId: string;
+    
+    if (existingStudent) {
+      // Use existing student ID
+      studentId = existingStudent.id;
+      console.log(`Using existing student ID: ${studentId} for ${answer.studentName}`);
+    } else {
+      // Create a new student record only if one doesn't exist
+      const { data: newStudent, error: createError } = await supabase
+        .from('students')
+        .insert({ name: answer.studentName })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error("Error creating student:", createError);
+        toast.error("Failed to create student");
+        return false;
+      }
+      
+      studentId = newStudent.id;
+      console.log(`Created new student ID: ${studentId} for ${answer.studentName}`);
+    }
     
     // Get the correct answer
     const { data: question, error: questionError } = await supabase
@@ -369,20 +431,37 @@ export const submitQuizResult = async (result: QuizResult) => {
   try {
     console.log("Submitting quiz result:", result);
     
-    // Create a new student record
-    const { data: newStudent, error: createError } = await supabase
+    // Check if a student with this name already exists
+    const { data: existingStudent, error: searchError } = await supabase
       .from('students')
-      .insert({ name: result.studentName })
-      .select()
+      .select('id')
+      .eq('name', result.studentName)
+      .limit(1)
       .maybeSingle();
-      
-    if (createError) {
-      console.error("Error creating student:", createError);
-      toast.error("Failed to create student record");
-      throw createError;
-    }
     
-    const studentId = newStudent?.id || generateUUID();
+    let studentId: string;
+    
+    if (existingStudent) {
+      // Use existing student ID
+      studentId = existingStudent.id;
+      console.log(`Using existing student ID: ${studentId} for quiz result`);
+    } else {
+      // Create a new student record only if one doesn't exist
+      const { data: newStudent, error: createError } = await supabase
+        .from('students')
+        .insert({ name: result.studentName })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error("Error creating student:", createError);
+        toast.error("Failed to create student record");
+        throw createError;
+      }
+      
+      studentId = newStudent.id;
+      console.log(`Created new student ID: ${studentId} for quiz result`);
+    }
     
     // Create the quiz result record
     const { error: resultError } = await supabase
@@ -402,7 +481,7 @@ export const submitQuizResult = async (result: QuizResult) => {
       throw resultError;
     }
     
-    // Create answer records
+    // Create answer records - but only if they don't already exist
     for (const answer of result.answers) {
       const { error: answerError } = await supabase
         .from('student_answers')

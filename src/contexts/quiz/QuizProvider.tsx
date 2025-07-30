@@ -33,13 +33,25 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // For students, check if there's an active quiz for their room code
   useEffect(() => {
+    console.log("Student quiz check:", { user: user?.role, roomCode, hasUser: !!user });
     if (user && user.role === 'student' && roomCode) {
+      console.log("Checking active quiz for student with room code:", roomCode);
       checkActiveQuizForStudent();
+    } else {
+      console.log("Not checking active quiz - missing requirements:", { 
+        hasUser: !!user, 
+        isStudent: user?.role === 'student', 
+        hasRoomCode: !!roomCode 
+      });
     }
   }, [user, roomCode]);
 
   const checkActiveQuizForStudent = async () => {
-    if (!roomCode) return;
+    console.log("checkActiveQuizForStudent called with roomCode:", roomCode);
+    if (!roomCode) {
+      console.log("No room code available for checking active quiz");
+      return;
+    }
     
     try {
       const { data: quizData, error } = await supabase
@@ -66,12 +78,31 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdBy: quizData.created_by,
           questions: quizData.quiz_questions
             .sort((a, b) => a.order_num - b.order_num)
-            .map(q => ({
-              id: q.id,
-              text: q.text,
-              options: q.options as string[],
-              correctOption: q.correct_option
-            }))
+            .map(q => {
+              // Handle options parsing - could be string, array, or JSON
+              let parsedOptions: string[] = [];
+              try {
+                if (typeof q.options === 'string') {
+                  parsedOptions = JSON.parse(q.options);
+                } else if (Array.isArray(q.options)) {
+                  // Ensure all elements are strings
+                  parsedOptions = q.options.map(option => String(option));
+                } else {
+                  console.error('Invalid options format:', q.options);
+                  parsedOptions = [];
+                }
+              } catch (error) {
+                console.error('Error parsing options:', error, q.options);
+                parsedOptions = [];
+              }
+              
+              return {
+                id: q.id,
+                text: q.text,
+                options: parsedOptions,
+                correctOption: q.correct_option
+              };
+            })
         };
         
         setActiveQuiz(formattedQuiz);

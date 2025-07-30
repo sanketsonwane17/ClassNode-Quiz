@@ -1,5 +1,7 @@
+
 import React, { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 import StudentHeader from "@/components/student/StudentHeader";
 import QuizWaiting from "@/components/student/QuizWaiting";
 import ActiveQuizQuestion from "@/components/student/ActiveQuizQuestion";
@@ -18,16 +20,19 @@ const StudentDashboard = () => {
     quizCompleted,
     score,
     isSubmitting,
+    loading,
+    error,
     handleAnswer,
     handleNextQuestion
   } = useStudentQuiz();
 
+  // Redirect if not authenticated or not a student
   useEffect(() => {
     if (!user || user.role !== "student") {
       navigate("/");
       return;
     }
-
+    
     if (!roomCode) {
       navigate("/join");
       return;
@@ -38,28 +43,61 @@ const StudentDashboard = () => {
     return null;
   }
 
+  console.log("Student Dashboard - Active Quiz:", activeQuiz);
+  console.log("Student Dashboard - Room Code:", roomCode);
+
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <StudentHeader />
 
-      <main className="flex-grow container mx-auto px-4 py-6">
-        {!activeQuiz && !quizCompleted && <QuizWaiting />}
+      <main className="container mx-auto py-4 sm:py-6 min-h-[calc(100vh-80px)] flex items-center justify-center">
+        <div className="w-full">
+          {error && (
+            <div className="mobile-card">
+              <div className="text-center py-8">
+                <p className="text-destructive mb-4">{error}</p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline"
+                >
+                  Refresh Page
+                </Button>
+              </div>
+            </div>
+          )}
 
-        {activeQuiz && !quizCompleted && (
-          <ActiveQuizQuestion
-            quiz={activeQuiz}
-            currentQuestion={currentQuestion}
-            timeLeft={timeLeft}
-            isSubmitting={isSubmitting}
-            onAnswer={handleAnswer}
-            onNextQuestion={handleNextQuestion}
-            selectedOption={selectedOption}
-          />
-        )}
+          {loading && !error && (
+            <div className="mobile-card">
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Waiting for quiz to start...</p>
+              </div>
+            </div>
+          )}
 
-        {quizCompleted && activeQuiz && (
-          <QuizCompleted quiz={activeQuiz} score={score} />
-        )}
+          {!activeQuiz && !quizCompleted && !loading && !error && (
+            <div className="mobile-card">
+              <QuizWaiting />
+            </div>
+          )}
+
+          {activeQuiz && !quizCompleted && !error && (
+            <ActiveQuizQuestion
+              quiz={activeQuiz}
+              currentQuestion={currentQuestion}
+              timeLeft={timeLeft}
+              isSubmitting={isSubmitting}
+              onAnswer={handleAnswer}
+              onNextQuestion={handleNextQuestion}
+              selectedOption={selectedOption}
+            />
+          )}
+
+          {quizCompleted && activeQuiz && !error && (
+            <div className="mobile-card">
+              <QuizCompleted quiz={activeQuiz} score={score} />
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

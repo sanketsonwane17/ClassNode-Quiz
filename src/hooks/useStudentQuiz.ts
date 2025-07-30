@@ -24,6 +24,8 @@ export const useStudentQuiz = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Redirect non-students
   useEffect(() => {
@@ -34,7 +36,22 @@ export const useStudentQuiz = () => {
 
   // Initialize quiz state when active quiz changes
   useEffect(() => {
+    console.log("Student Quiz - Active quiz changed:", activeQuiz);
     if (activeQuiz) {
+      // Validate quiz data before initialization
+      if (!activeQuiz.questions || activeQuiz.questions.length === 0) {
+        console.error("Active quiz has no questions:", activeQuiz);
+        setError("Quiz has no questions available");
+        return;
+      }
+      
+      if (!activeQuiz.timePerQuestion || activeQuiz.timePerQuestion <= 0) {
+        console.error("Invalid time per question:", activeQuiz.timePerQuestion);
+        setError("Invalid quiz timing configuration");
+        return;
+      }
+      
+      setError(null);
       setSelectedOption(null);
       setCurrentQuestion(0);
       setQuestionStartTime(Date.now());
@@ -42,12 +59,23 @@ export const useStudentQuiz = () => {
       setAnswers([]);
       setQuizCompleted(false);
       setScore(0);
+      setLoading(false);
+      console.log("Student quiz initialized successfully");
+    } else {
+      setLoading(true);
     }
   }, [activeQuiz, setCurrentQuestion]);
 
   // Timer for quiz questions
   useEffect(() => {
-    if (!activeQuiz || quizCompleted) return;
+    if (!activeQuiz || quizCompleted || error) return;
+
+    // Validate current question exists
+    if (!activeQuiz.questions || !activeQuiz.questions[currentQuestion]) {
+      console.error("Current question not found:", { currentQuestion, totalQuestions: activeQuiz.questions?.length });
+      setError("Question not found");
+      return;
+    }
 
     const timer = setInterval(() => {
       const elapsedSeconds = Math.floor((Date.now() - questionStartTime) / 1000);
@@ -61,18 +89,31 @@ export const useStudentQuiz = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeQuiz, questionStartTime, currentQuestion, quizCompleted, isSubmitting]);
+  }, [activeQuiz, questionStartTime, currentQuestion, quizCompleted, isSubmitting, error]);
 
   const handleAnswer = (optionIndex: number) => {
     setSelectedOption(optionIndex);
   };
 
   const handleNextQuestion = async () => {
-    if (!activeQuiz || !user || isSubmitting) return;
+    if (!activeQuiz || !user || isSubmitting) {
+      console.log("Cannot proceed with question:", { activeQuiz: !!activeQuiz, user: !!user, isSubmitting });
+      return;
+    }
+    
+    // Validate current question exists
+    if (!activeQuiz.questions || !activeQuiz.questions[currentQuestion]) {
+      console.error("Current question not found during submission:", { currentQuestion, totalQuestions: activeQuiz.questions?.length });
+      setError("Question not found during submission");
+      toast.error("Unable to submit answer - question not found");
+      return;
+    }
     
     setIsSubmitting(true);
+    setError(null);
     
     const currentQ = activeQuiz.questions[currentQuestion];
+    console.log("Submitting answer for question:", currentQ.id);
     
     const timeSpent = Math.min(
       activeQuiz.timePerQuestion,
@@ -89,6 +130,7 @@ export const useStudentQuiz = () => {
     };
     
     try {
+      console.log("Submitting answer:", answer);
       const isCorrect = await submitAnswer(answer);
       
       const fullAnswer: StudentAnswer = {
@@ -106,11 +148,14 @@ export const useStudentQuiz = () => {
         setCurrentQuestion(prev => prev + 1);
         setSelectedOption(null);
         setQuestionStartTime(Date.now());
+        console.log("Moving to next question:", currentQuestion + 1);
       } else {
+        console.log("Quiz completed, submitting final result");
         await finishQuiz(fullAnswer);
       }
     } catch (error) {
       console.error("Error submitting answer:", error);
+      setError("Failed to submit answer");
       toast.error("Failed to submit answer. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -151,6 +196,8 @@ export const useStudentQuiz = () => {
     quizCompleted,
     score,
     isSubmitting,
+    loading,
+    error,
     handleAnswer,
     handleNextQuestion
   };
